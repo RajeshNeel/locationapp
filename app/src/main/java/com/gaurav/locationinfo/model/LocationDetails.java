@@ -7,7 +7,6 @@ public class LocationDetails {
 
     private String latitude,longitude,accuracy,bearing,altitude,speed,time;
 
-
     public LocationDetails(String latitude, String longitude, String accuracy, String bearing, String altitude, String speed, String time) {
         this.latitude = latitude;
         this.longitude = longitude;

@@ -33,6 +33,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.gson.Gson;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -44,12 +46,15 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private GoogleApiClient googleApiClient;
     private static final int START_FOREGROUND_ID = 6;
     private final static int TIME_INTERVAL = 600000;
+    private final static int TIME_INTERVAL_PRINT_LOCATION = 3000000;
+
+   /* private final static int TIME_INTERVAL = 40000;
+    private final static int TIME_INTERVAL_PRINT_LOCATION = 30000;*/
+
     private LocationDetails locationDetails;
-    Handler handler;
+    private ArrayList<LocationDetails> locationDetailsArrayList;
     Timer timer = new Timer();
     TimerTask printLocationDetailsAfterHalfAnHour = new PrintLocationDetailsAfterHalfAnHour(MyService.this);
-
-
 
     public MyService() {
     }
@@ -66,10 +71,11 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
 
         buildGoogleApiClient();
+        locationDetailsArrayList = new ArrayList<>();
 
         Log.v("MyService", "onCreate calling");
 
-        timer.scheduleAtFixedRate(printLocationDetailsAfterHalfAnHour, 0, TIME_INTERVAL);
+        timer.scheduleAtFixedRate(printLocationDetailsAfterHalfAnHour, 0, TIME_INTERVAL_PRINT_LOCATION);
 
 
     }
@@ -96,8 +102,8 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
                 0, notificationIntent, 0);
 
         Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID_SERVICE)
-                .setContentTitle("LocationInfo")
-                .setContentText("Fetch location in background")
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(getString(R.string.notification_text))
                 .setSmallIcon(R.drawable.ic_launcher_background)
                 .setContentIntent(pendingIntent)
                 .build();
@@ -158,15 +164,17 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     @Override
     public void onLocationChanged(@NonNull Location location) {
 
+        //   Toast.makeText(this, "location "+location.getLatitude()+" Longitude "+location.getLongitude(), Toast.LENGTH_SHORT).show();
+
 
         LocationDetails locationDetails = new LocationDetails(String.valueOf(location.getLatitude()),String.valueOf(location.getLongitude()),String.valueOf(location.getAccuracy()),
                 String.valueOf(location.getBearing()),String.valueOf(location.getAltitude()),String.valueOf(location.getSpeed()),String.valueOf(location.getTime()));
 
+        locationDetailsArrayList.add(locationDetails);
 
-        LocationSharedPreference.saveLocationObjectToSharedPreference(getApplicationContext(),"locationDetails",
-                locationDetails);
+        LocationSharedPreference.setList(getApplicationContext(),"locationDetailList",locationDetailsArrayList);
 
-     //   Toast.makeText(this, "location "+location.getLatitude()+" Longitude "+location.getLongitude(), Toast.LENGTH_SHORT).show();
+
 
     }
     @Override
@@ -231,6 +239,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         }
 
 
+        String locationInJsonFormat ="";
 
         @Override
         public void run() {
@@ -241,18 +250,36 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
                     mHandler.post(new Runnable() {
                         public void run() {
 
-                            if(getLocationDetails(MyService.this)!=null){
+                            List<LocationDetails> savedListForThirtyMMin = LocationSharedPreference.getSavedLocationDetailsList(getApplicationContext(),"locationDetailList");
 
-                                LocationDetails locationDetails = LocationSharedPreference.getSavedLocationObjectFromPreference(getApplicationContext(),
-                                        "locationDetails", LocationDetails.class);
 
-                                Gson gson = new Gson();
 
-                                String locationInJsonFormat = gson.toJson(locationDetails);
+                            try {
+                             //   Log.v("MyService","list size :"+savedListForThirtyMMin.size());
 
-                                Toast.makeText(context, "Location Details "+locationInJsonFormat, Toast.LENGTH_SHORT).show();
+                                if(savedListForThirtyMMin.size()!=0){
+                                    Gson gson = new Gson();
+                                    locationInJsonFormat = gson.toJson(savedListForThirtyMMin);
+
+                                }else{
+                                    locationInJsonFormat = "";
+                                }
+                            } catch (NullPointerException e) {
+                                locationInJsonFormat = "";
+
+                                e.printStackTrace();
+                            }
+
+
+                            if(locationInJsonFormat.equalsIgnoreCase("")){
+
+                            }else{
+                                Toast.makeText(context,locationInJsonFormat, Toast.LENGTH_SHORT).show();
 
                             }
+
+
+
 
                         }
                     });

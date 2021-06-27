@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">LocationInfo</string>
+    <string name="notification_text">Fetching location in background</string>
+    <string name="lat_text">Latitude</string>
+    <string name="longitude_text">Longitude</string>
+    <string name="provider_text">Provider</string>
+    <string name="time_text">Time</string>
+    <string name="accuracy_text">Accuracy</string>
+    <string name="bearing_text">Bearing</string>
+    <string name="all_details_text">All Details</string>
+    <string name="speed_text">Speed</string>
+    <string name="altitude_text">Altitude</string>
+    <string name="follow_us_text"> Follow us on :</string>
+
+
 </resources>
