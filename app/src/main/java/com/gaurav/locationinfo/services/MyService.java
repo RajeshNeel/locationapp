@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -23,11 +24,14 @@ import androidx.core.app.NotificationCompat;
 
 import com.gaurav.locationinfo.MainActivity;
 import com.gaurav.locationinfo.R;
+import com.gaurav.locationinfo.model.LocationDetails;
+import com.gaurav.locationinfo.storage.LocationSharedPreference;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.gson.Gson;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,8 +42,9 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     private LocationRequest locationRequest;
     private GoogleApiClient googleApiClient;
-    private static final int START_FOREGROUND_ID =6;
+    private static final int START_FOREGROUND_ID = 6;
     private final static int TIME_INTERVAL = 600000;
+    private LocationDetails locationDetails;
     Handler handler;
     Timer timer = new Timer();
     TimerTask printLocationDetailsAfterHalfAnHour = new PrintLocationDetailsAfterHalfAnHour(MyService.this);
@@ -153,6 +158,14 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     @Override
     public void onLocationChanged(@NonNull Location location) {
 
+
+        LocationDetails locationDetails = new LocationDetails(String.valueOf(location.getLatitude()),String.valueOf(location.getLongitude()),String.valueOf(location.getAccuracy()),
+                String.valueOf(location.getBearing()),String.valueOf(location.getAltitude()),String.valueOf(location.getSpeed()),String.valueOf(location.getTime()));
+
+
+        LocationSharedPreference.saveLocationObjectToSharedPreference(getApplicationContext(),"locationDetails",
+                locationDetails);
+
      //   Toast.makeText(this, "location "+location.getLatitude()+" Longitude "+location.getLongitude(), Toast.LENGTH_SHORT).show();
 
     }
@@ -228,7 +241,18 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
                     mHandler.post(new Runnable() {
                         public void run() {
 
-                            Toast.makeText(context, "Location Details "+getLocationDetails(MyService.this), Toast.LENGTH_SHORT).show();
+                            if(getLocationDetails(MyService.this)!=null){
+
+                                LocationDetails locationDetails = LocationSharedPreference.getSavedLocationObjectFromPreference(getApplicationContext(),
+                                        "locationDetails", LocationDetails.class);
+
+                                Gson gson = new Gson();
+
+                                String locationInJsonFormat = gson.toJson(locationDetails);
+
+                                Toast.makeText(context, "Location Details "+locationInJsonFormat, Toast.LENGTH_SHORT).show();
+
+                            }
 
                         }
                     });
