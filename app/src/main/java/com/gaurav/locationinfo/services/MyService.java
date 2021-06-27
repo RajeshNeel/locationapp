@@ -1,5 +1,6 @@
 package com.gaurav.locationinfo.services;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -9,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -27,6 +29,9 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import static com.gaurav.locationinfo.ui.ApplicationClass.NOTIFICATION_CHANNEL_ID_SERVICE;
 
 public class MyService extends Service implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
@@ -34,9 +39,10 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private LocationRequest locationRequest;
     private GoogleApiClient googleApiClient;
     private static final int START_FOREGROUND_ID =6;
-
-
-
+    private final static int TIME_INTERVAL = 600000;
+    Handler handler;
+    Timer timer = new Timer();
+    TimerTask printLocationDetailsAfterHalfAnHour = new PrintLocationDetailsAfterHalfAnHour(MyService.this);
 
 
 
@@ -54,16 +60,15 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         super.onCreate();
 
 
-
         buildGoogleApiClient();
-
-
 
         Log.v("MyService", "onCreate calling");
 
+        timer.scheduleAtFixedRate(printLocationDetailsAfterHalfAnHour, 0, TIME_INTERVAL);
 
 
     }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -139,8 +144,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private void initLocationRequest() {
 
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(50000);
-        locationRequest.setFastestInterval(50000);
+        locationRequest.setInterval(TIME_INTERVAL);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -149,7 +153,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     @Override
     public void onLocationChanged(@NonNull Location location) {
 
-        Toast.makeText(this, "location "+location.getLatitude()+" Longitude "+location.getLongitude(), Toast.LENGTH_SHORT).show();
+     //   Toast.makeText(this, "location "+location.getLatitude()+" Longitude "+location.getLongitude(), Toast.LENGTH_SHORT).show();
 
     }
     @Override
@@ -187,5 +191,51 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
             googleApiClient.connect();
 
         }
+    }
+
+    public Location getLocationDetails(Context mContext) {
+        Location location = null;
+        if (googleApiClient != null) {
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.d("MyService","Location Permission Denied");
+                return null;
+            }else {
+                location = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+            }
+        }
+        return location;
+    }
+
+
+    public class PrintLocationDetailsAfterHalfAnHour extends TimerTask {
+
+
+        private Context context;
+        private Handler mHandler = new Handler();
+
+        public PrintLocationDetailsAfterHalfAnHour(Context con) {
+            this.context = con;
+        }
+
+
+
+        @Override
+        public void run() {
+            new Thread(new Runnable() {
+
+                public void run() {
+
+                    mHandler.post(new Runnable() {
+                        public void run() {
+
+                            Toast.makeText(context, "Location Details "+getLocationDetails(MyService.this), Toast.LENGTH_SHORT).show();
+
+                        }
+                    });
+                }
+            }).start();
+
+        }
+
     }
 }
